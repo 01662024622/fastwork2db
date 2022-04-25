@@ -10,7 +10,7 @@ import java.util.Date;
 
 @Data
 @Entity
-@Table(name="fw_tasks")
+@Table(name = "fw_tasks")
 public class Task {
     @Id
     private String id;
@@ -18,32 +18,25 @@ public class Task {
     private String title;
     @Column(length = 5000)
     private String description;
-    @Column(name="create_by")
+    @Column(name = "create_by")
     private String createBy;
-    private String team;
     private String project;
     private String scenario;
-    @Column(name="start_date")
+    @Column(name = "start_date")
     private Long startDate;
-    @Column(name="modified_date")
+    @Column(name = "modified_date")
     private Long modifiedDate;
     private Long end_date;
     private String status;
     private String proccess;
     private Integer overdue;
-    @Column(name="complete_date")
+    @Column(name = "complete_date")
     private Long completeDate;
-    @Column(name="parent_id")
+    @Column(name = "parent_id")
     private String parentId;
 
-    @Column(name="over_task",length = 5000)
+    @Column(name = "over_task", length = 5000)
     private String overTask;
-    @Column(name="completed")
+    @Column(name = "completed")
     private Integer completed;
-    @Column(length = 5000)
-    private String assign;
-    @Column(name="notion_id")
-    private String notionId;
-
-
 }

@@ -17,7 +17,7 @@ public class CrawlerFwSchedule {
 
 //    @Scheduled(fixedRateString = "${crawler.cron.delay}")
     public void importData() throws MessagingException, UnirestException {
-//        taskService.getData("&status=%C4%90%C3%B3ng");
+        taskService.getData("&status=%C4%90%C3%B3ng");
         taskService.getData("");
     }
 }

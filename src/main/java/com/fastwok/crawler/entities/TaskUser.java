@@ -11,8 +11,7 @@ public class TaskUser {
     @Id
     @GeneratedValue(strategy= GenerationType.AUTO)
     private Long id;
-    @Column(name="user_email")
-    private String userEmail;
+    private String user;
     @Column(name="task_id")
     private String taskId;
 

@@ -1,15 +1,20 @@
 package com.fastwok.crawler.util;
 
+import com.fastwok.crawler.entities.SubTask;
 import com.fastwok.crawler.entities.Task;
+import com.fastwok.crawler.entities.TaskUser;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 @Slf4j
@@ -34,11 +39,6 @@ public class TaskUtil {
                 task.setProject(jsonObject.getJSONObject("project").getString("name"));
             }
         }
-//        if (jsonObject.has("team")) {
-//            if (jsonObject.getJSONObject("team").has("name")) {
-//                task.setTeam(jsonObject.getJSONObject("team").getString("name"));
-//            }
-//        }
         if (jsonObject.has("workitem")) {
             if (jsonObject.getJSONObject("workitem").has("name")) {
                 task.setScenario(jsonObject.getJSONObject("workitem").getString("name"));
@@ -86,164 +86,116 @@ public class TaskUtil {
         }
         task.setOverTask(SubTaskUtil.getOverSubTask(jsonObject));
 
-        task.setAssign(UserUtil.getListUser(jsonObject));
         return task;
     }
 
-    public static HttpResponse<JsonNode> saveNotion(Task task) throws UnirestException {
-        Date date = new Date();
-        long timeMilli = date.getTime();
-        return Unirest.post("https://api.notion.com/v1/pages")
-                .header("Accept", "*/*")
-                .header("Authorization", "Bearer secret_FSTMa6dNiG3fGlSpqD82j22yqwAhVWFRk0UqfyaUJCX")
-                .header("x-fw", String.valueOf(timeMilli))
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36")
-                .header("Accept-Language", "en-US,en;q=0.9,vi;q=0.8")
-                .header("Connection", "keep-alive")
-                .header("Accept-Encoding", "gzip, deflate, br")
-                .header("Content-Type", "application/json;charset=UTF-8")
-                .header("Notion-Version", "2021-08-16")
-                .body("{" +
-                        "    \"parent\": { \"database_id\": \"06cf32f5a8604100854d82684c48cffd\" }," + getProperty(task) +
-                        "}")
-                .asJson();
-
-    }
-
-    public static HttpResponse<JsonNode> updateNotion(Task task) throws UnirestException {
-        Date date = new Date();
-        long timeMilli = date.getTime();
-        log.info(task.getStatus());
-        return Unirest.post("https://api.notion.com/v1/pages/" + task.getNotionId())
-                .header("Accept", "*/*")
-                .header("Authorization", "Bearer secret_FSTMa6dNiG3fGlSpqD82j22yqwAhVWFRk0UqfyaUJCX")
-                .header("x-fw", String.valueOf(timeMilli))
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36")
-                .header("Accept-Language", "en-US,en;q=0.9,vi;q=0.8")
-                .header("Connection", "keep-alive")
-                .header("Accept-Encoding", "gzip, deflate, br")
-                .header("Content-Type", "application/json;charset=UTF-8")
-                .header("Notion-Version", "2021-08-16")
-                .body("{" + getProperty(task) + "}")
-                .asJson();
-
-    }
-
-    private static String getProperty(Task task) {
-
-        String startDate;
-        String endDate;
-        String over = "";
-        if (task.getStartDate() == null) startDate = "";
-        else startDate = getDateProperty("Ngày bắt đầu",new Date(task.getStartDate()));
-
-        if (task.getEnd_date() == null) endDate = "";
-        else {
-            endDate = getDateProperty("Ngày kết thúc",new Date(task.getEnd_date()));
-            if (task.getCompleteDate() != null) {
-                if (task.getCompleteDate() > task.getEnd_date()+3600000) {
-                    Long overDay = (task.getCompleteDate() - task.getEnd_date()) / 1000 / 3600;
-                    over = "\uD83D\uDD34 "+"Quá hạn: " + overDay + " giờ";
+    public static List<TaskUser> getListUser(JSONObject jsonValues) {
+        String id = jsonValues.getString("_id");
+        if (jsonValues.has("assignTo")) {
+            if (jsonValues.getJSONArray("assignTo").length() > 0) {
+                List<TaskUser> users = new ArrayList<>();
+                for (int z = 0; z < jsonValues.getJSONArray("assignTo").length(); z++) {
+                    JSONObject jsonObject = jsonValues.getJSONArray("assignTo").getJSONObject(z);
+                    TaskUser user = new TaskUser();
+                    user.setTaskId(id);
+                    user.setUser(jsonObject.getString("name"));
+                    users.add(user);
                 }
-            } else {
-                Date date = new Date();
-                long timeMilli = date.getTime();
-                if (timeMilli > task.getEnd_date()) {
-                    if (task.getOverTask() == null)
-                        over = "\uD83D\uDD34 "+"Quá hạn: " + Math.ceil(((timeMilli - task.getEnd_date())/3600000)) + " giờ";
-                    else over = "\uD83D\uDD34 "+ task.getOverTask();
-                }
+                return users;
             }
         }
-
-        String res = "\"properties\": {" +
-                "\"Người tạo\": {" +
-                "\"rich_text\": [" +
-                "    {" +
-                "        \"text\": {" +
-                "            \"content\": \"" + task.getCreateBy() + "\"" +
-                "        }" +
-                "    }" +
-                "]" +
-                "                }," +
-                "                \"Tiến độ\": {" +
-                "\"rich_text\": [" +
-                "    {" +
-                "        \"text\": {" +
-                "            \"content\": \"" + task.getCompleted() + "%\"" +
-                "        }" +
-                "    }" +
-                "]" +
-                "                }," +
-                "                \"Mô tả\": {" +
-                "\"rich_text\": [" +
-                "    {" +
-                "        \"text\": {" +
-                "            \"content\": \"" + task.getDescription() + "\"" +
-                "        }" +
-                "    }" +
-                "]" +
-                "                }," +
-                "                \"Dự án\": {" +
-                "\"rich_text\": [" +
-                "    {" +
-                "        \"text\": {" +
-                "            \"content\": \"" + task.getProject() + "\"" +
-                "        }" +
-                "    }" +
-                "]" +
-                "                }," +
-                "                \"Link\": {" +
-                "\"url\": \"https://app.fastwork.vn/tasks#!/assigned/?view=danhsach&idcv=" + task.getId() + "\"" +
-                "                }," +
-                "                \"Trạng thái\": {" +
-                "\"select\": {" +
-                "    \"name\": \"" + task.getStatus() + "\"" +
-                "}" +
-                "                }," +
-                "                \"Quá hạn\": {" +
-                "\"rich_text\": [" +
-                "    {" +
-                "        \"text\": {" +
-                "            \"content\": \"" + over + "\"" +
-                "        }" +
-                "    }" +
-                "]" +
-                "                }," +
-
-                "                \"Người thực hiện\": {" +
-                "\"rich_text\": [" +
-                "    {" +
-                "        \"text\": {" +
-                "            \"content\": \"" + task.getAssign() + "\"" +
-                "        }" +
-                "    }" +
-                "]" +
-                "                }," +
-                startDate +
-                endDate +
-                "                \"Công việc\": {" +
-                "\"title\": [" +
-                "    {" +
-                "        \"text\": {" +
-                "            \"content\": \"" + task.getTitle() + "\"" +
-                "        }" +
-                "    }" +
-                "]" +
-                "                }" +
-                "}";
-
-        log.info(res);
-        return res;
+        return null;
     }
-    private static String getDateProperty(String property,Date date){
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String strDate = formatter.format(date);
-        return "                \""+property+"\": {" +
-                "\"date\": {" +
-                "\"start\": \""+strDate+"+07:00\"" +
-                "}" +
-                "                },";
+
+    public static List<SubTask> getListSubTask(JSONObject jsonValues) {
+        List<SubTask> subTasks = new ArrayList<>();
+        String id = jsonValues.getString("_id");
+        if (jsonValues.has("checklists")) {
+            if (jsonValues.getJSONArray("checklists").length() == 0) return null;
+            if (jsonValues.getJSONArray("checklists").length() > 1) {
+                if (jsonValues.getJSONArray("checklists").getJSONObject(1).has("checkItems")) {
+                    if (jsonValues.getJSONArray("checklists").getJSONObject(1).getJSONArray("checkItems").length() > 0) {
+                        JSONArray jsonArr = jsonValues.getJSONArray("checklists").getJSONObject(1).getJSONArray("checkItems");
+
+                        for (int x = 0; x < jsonArr.length(); x++) {
+                            SubTask subTask = new SubTask();
+                            subTask.setTaskId(id);
+                            subTask.setTitle(jsonArr.getJSONObject(x).getString("title"));
+                            subTask.setId(jsonArr.getJSONObject(x).getString("id"));
+                            if (jsonArr.getJSONObject(x).has("completedBy"))
+                                subTask.setCompleteBy(jsonArr.getJSONObject(x).getJSONObject("completedBy").getString("name"));
+                            if (jsonArr.getJSONObject(x).has("completedDate")) {
+                                if (jsonArr.getJSONObject(x).get("completedDate").toString().length() > 6) {
+                                    subTask.setCompleteDate(jsonArr.getJSONObject(x).getLong("completedDate"));
+                                }
+
+                            }
+                            if (jsonArr.getJSONObject(x).has("from_date")) {
+                                if (jsonArr.getJSONObject(x).get("from_date").toString().length() > 6) {
+                                    subTask.setFromDate(jsonArr.getJSONObject(x).getLong("from_date"));
+                                }
+
+                            }
+                            if (jsonArr.getJSONObject(x).has("to_date")) {
+                                if (jsonArr.getJSONObject(x).get("to_date").toString().length() > 6) {
+                                    subTask.setToDate(jsonArr.getJSONObject(x).getLong("to_date"));
+                                }
+
+                            }
+                            if (jsonArr.getJSONObject(x).has("createdDate")) {
+                                if (jsonArr.getJSONObject(x).get("createdDate").toString().length() > 6) {
+                                    subTask.setCreateDate(jsonArr.getJSONObject(x).getLong("createdDate"));
+                                }
+
+                            }
+                            subTasks.add(subTask);
+                        }
+                    }
+                }
+            } else {
+                if (jsonValues.getJSONArray("checklists").getJSONObject(0).has("checkItems")) {
+                    if (jsonValues.getJSONArray("checklists").getJSONObject(0).getJSONArray("checkItems").length() > 0) {
+                        JSONArray jsonArr = jsonValues.getJSONArray("checklists").getJSONObject(0).getJSONArray("checkItems");
+                        for (int x = 0; x < jsonArr.length(); x++) {
+                            SubTask subTask = new SubTask();
+                            subTask.setTaskId(id);
+                            subTask.setTitle(jsonArr.getJSONObject(x).getString("title"));
+                            subTask.setId(jsonArr.getJSONObject(x).getString("id"));
+                            if (jsonArr.getJSONObject(x).has("completedBy"))
+                                subTask.setCompleteBy(jsonArr.getJSONObject(x).getJSONObject("completedBy").getString("name"));
+                            if (jsonArr.getJSONObject(x).has("completedDate")) {
+                                if (jsonArr.getJSONObject(x).get("completedDate").toString().length() > 6) {
+                                    subTask.setCompleteDate(jsonArr.getJSONObject(x).getLong("completedDate"));
+                                }
+
+                            }
+                            if (jsonArr.getJSONObject(x).has("from_date")) {
+                                if (jsonArr.getJSONObject(x).get("from_date").toString().length() > 6) {
+                                    subTask.setFromDate(jsonArr.getJSONObject(x).getLong("from_date"));
+                                }
+
+                            }
+                            if (jsonArr.getJSONObject(x).has("to_date")) {
+                                if (jsonArr.getJSONObject(x).get("to_date").toString().length() > 6) {
+                                    subTask.setToDate(jsonArr.getJSONObject(x).getLong("to_date"));
+                                }
+
+                            }
+                            if (jsonArr.getJSONObject(x).has("createdDate")) {
+                                if (jsonArr.getJSONObject(x).get("createdDate").toString().length() > 6) {
+                                    subTask.setCreateDate(jsonArr.getJSONObject(x).getLong("createdDate"));
+                                }
+
+                            }
+                            subTasks.add(subTask);
+                        }
+                    }
+                }
+            }
+            return subTasks;
+        }
+        return null;
     }
+
 
 }
