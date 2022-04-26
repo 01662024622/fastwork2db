@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import javax.mail.MessagingException;
 
 @Component
 @Slf4j
@@ -16,7 +15,7 @@ public class CrawlerFwSchedule {
     TaskService taskService;
 
 //    @Scheduled(fixedRateString = "${crawler.cron.delay}")
-    public void importData() throws MessagingException, UnirestException {
+    public void importData() throws  UnirestException {
         taskService.getData("&status=%C4%90%C3%B3ng");
         taskService.getData("");
     }

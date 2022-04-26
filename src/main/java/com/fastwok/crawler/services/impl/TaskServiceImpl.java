@@ -1,5 +1,6 @@
 package com.fastwok.crawler.services.impl;
 
+import com.fastwok.crawler.entities.Project;
 import com.fastwok.crawler.entities.SubTask;
 import com.fastwok.crawler.entities.Task;
 import com.fastwok.crawler.entities.TaskUser;
@@ -31,14 +32,26 @@ public class TaskServiceImpl implements TaskService {
     @Autowired
     TaskUserRepository taskUserRepository;
     @Autowired
-    FlagRepository flagRepository;
-    String AUTHEN = "Basic dGhhbmd2dUBodGF1dG86MGJiOGY2ODAyYTk3N2YzM2VlNzVjZGRlYmFlMTVlMDU=";
-    @Value("${crawler.fastwork.id}")
-    String taskId;
+    ProjectRepository projectRepository;
+    @Autowired
+    AuthenticationRepository authenticationRepository;
+    String AUTHEN = "";
 
     @Override
-    public void getData(String string) throws UnirestException {
-        HttpResponse<JsonNode> response = getListTask(string);
+    public void getData(String string) {
+        AUTHEN=authenticationRepository.findFirstByOrderByIdAsc().getAuthentication();
+        List<Project> projects = projectRepository.getProject();
+        projects.forEach(project -> {
+            try {
+                running(string, project.getProject_id());
+            } catch (UnirestException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public void running(String string, String projectId) throws UnirestException {
+        HttpResponse<JsonNode> response = getListTask(string, projectId);
         JSONObject res = new JSONObject(response.getBody());
         log.info(res.toString());
         JSONArray jsonArray = res.getJSONObject("object").getJSONArray("result");
@@ -53,14 +66,11 @@ public class TaskServiceImpl implements TaskService {
                 JSONObject jsonValues = new JSONObject(getDataDetail(id).getBody()).getJSONObject("result");
                 if (getTask == null) {
                     getTask = new Task();
-                    getTask = TaskUtil.convertToTask(jsonValues, getTask);
-                    taskUsers = TaskUtil.getListUser(jsonValues);
-                    subTasks = TaskUtil.getListSubTask(jsonValues);
-                } else if (jsonValues.getLong("modifiedDate") > getTask.getModifiedDate()) {
-                    getTask = TaskUtil.convertToTask(jsonValues, getTask);
-                    taskUsers = TaskUtil.getListUser(jsonValues);
-                    subTasks = TaskUtil.getListSubTask(jsonValues);
-                }
+                } else if (jsonValues.getLong("modifiedDate") < getTask.getModifiedDate()) return;
+
+                getTask = TaskUtil.convertToTask(jsonValues, getTask);
+                taskUsers = TaskUtil.getListUser(jsonValues);
+                subTasks = TaskUtil.getListSubTask(jsonValues);
                 taskRepository.save(getTask);
                 if (taskUsers != null) {
                     taskUsers.forEach(element -> {
@@ -75,45 +85,17 @@ public class TaskServiceImpl implements TaskService {
                         subTaskRepository.save(element);
                     });
                 }
-
-
-//                if (jsonValues.has("assignTo")) {
-//                    if (jsonValues.getJSONArray("assignTo").length() > 0) {
-//                        List<User> users = new ArrayList<>();
-//                        List<TaskUser> taskUsers = new ArrayList<>();
-//                        for (int z = 0; z < jsonValues.getJSONArray("assignTo").length(); z++) {
-//                            JSONObject jsonObject = jsonValues.getJSONArray("assignTo").getJSONObject(z);
-//                            if (userRepository.findUserByEmail(jsonObject.getString("email")) < 0) {
-//                                User user = new User();
-//                                user.setEmail(jsonObject.getString("email"));
-//                                user.setName(jsonObject.getString("name"));
-//                                users.add(user);
-//                            }
-//                            TaskUser taskUser = new TaskUser();
-//                            taskUser.setTaskId(id);
-//                            taskUser.setUserEmail(jsonObject.getString("email"));
-//                            taskUsers.add(taskUser);
-//                        }
-//                        if (taskUsers.size() > 0) {
-//                            taskUserRepository.saveAll(taskUsers);
-//                        }
-//                        if (users.size() > 0) {
-//                            userRepository.saveAll(users);
-//                        }
-//                    }
-//                }
-//                JSONObject jsonValuesComment = new JSONObject(getDataDetailComment(id).getBody()).getJSONObject("result");
             }
 
         }
     }
 
-    private HttpResponse<JsonNode> getListTask(String string)
+    private HttpResponse<JsonNode> getListTask(String string, String projectId)
             throws UnirestException {
         Date date = new Date();
         long timeMilli = date.getTime();
         log.info(String.valueOf(timeMilli));
-        return Unirest.post("https://work.fastwork.vn:6014/Project/Tasks/" + taskId + "?orgid=5efef3dd5a51cf1c10fab0e4&fromDate=1500000000000&toDate=1693885199999&orderbyField=cretedDate&orderbyType=desc" + string)
+        return Unirest.post("https://work.fastwork.vn:6014/Project/Tasks/" + projectId + "?orgid=5efef3dd5a51cf1c10fab0e4&fromDate=1500000000000&toDate=1693885199999&orderbyField=cretedDate&orderbyType=desc" + string)
                 .header("Accept", "*/*")
                 .header("Authorization", AUTHEN)
                 .header("x-fw", String.valueOf(timeMilli))
