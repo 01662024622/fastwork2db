@@ -46,4 +46,5 @@ public class Task {
     @Column(name = "completed")
     private Integer completed;
     private String link;
+    private String project_id;
 }

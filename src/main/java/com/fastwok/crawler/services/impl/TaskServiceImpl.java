@@ -72,6 +72,7 @@ public class TaskServiceImpl implements TaskService {
                 getTask = TaskUtil.convertToTask(jsonValues, getTask);
                 taskUsers = TaskUtil.getListUser(jsonValues);
                 subTasks = TaskUtil.getListSubTask(jsonValues);
+                getTask.setProject_id(projectId);
                 taskRepository.save(getTask);
                 if (taskUsers != null) {
                     taskUsers.forEach(element -> {
