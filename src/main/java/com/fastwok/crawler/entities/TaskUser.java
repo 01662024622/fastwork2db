@@ -14,5 +14,6 @@ public class TaskUser {
     private String user;
     @Column(name="task_id")
     private String taskId;
+    private String role;
 
 }

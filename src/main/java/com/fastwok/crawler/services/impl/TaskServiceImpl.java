@@ -18,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -53,7 +55,6 @@ public class TaskServiceImpl implements TaskService {
     public void running(String string, String projectId) throws UnirestException {
         HttpResponse<JsonNode> response = getListTask(string, projectId);
         JSONObject res = new JSONObject(response.getBody());
-        log.info(res.toString());
         JSONArray jsonArray = res.getJSONObject("object").getJSONArray("result");
         int total = jsonArray.length();
         for (int n = 0; n < total; n++) {
@@ -94,7 +95,6 @@ public class TaskServiceImpl implements TaskService {
             throws UnirestException {
         Date date = new Date();
         long timeMilli = date.getTime();
-        log.info(String.valueOf(timeMilli));
         return Unirest.post("https://work.fastwork.vn:6014/Project/Tasks/" + projectId + "?orgid=5efef3dd5a51cf1c10fab0e4&fromDate=1500000000000&toDate=1693885199999&orderbyField=cretedDate&orderbyType=desc" + string)
                 .header("Accept", "*/*")
                 .header("Authorization", AUTHEN)

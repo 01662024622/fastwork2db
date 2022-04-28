@@ -23,15 +23,21 @@ public class Task {
     private String project;
     private String scenario;
     @Column(name = "start_date")
-    private Long startDate;
+    private String startDate;
     @Column(name = "modified_date")
     private Long modifiedDate;
-    private Long end_date;
+    @Column(name = "end_date")
+    private String endDate;
+    @Column(name = "start_date_long")
+    private long endDateLong;
     private String status;
     private String proccess;
     private Integer overdue;
     @Column(name = "complete_date")
-    private Long completeDate;
+    private String completeDate;
+
+    @Column(name = "complete_long")
+    private Long completeLong;
     @Column(name = "parent_id")
     private String parentId;
 
@@ -39,4 +45,5 @@ public class Task {
     private String overTask;
     @Column(name = "completed")
     private Integer completed;
+    private String link;
 }

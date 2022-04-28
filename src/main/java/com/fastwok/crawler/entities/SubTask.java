@@ -17,13 +17,13 @@ public class SubTask {
     @Column(length = 1000)
     private String title;
     @Column(name = "complete_date")
-    private Long completeDate;
+    private String completeDate;
     @Column(name = "to_date")
-    private Long toDate;
+    private String toDate;
     @Column(name = "create_date")
-    private Long createDate;
+    private String createDate;
     @Column(name = "from_date")
-    private Long fromDate;
+    private String fromDate;
     private String completeBy;
     @Column(name = "task_id")
     private String taskId;
